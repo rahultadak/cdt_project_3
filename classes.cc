@@ -263,6 +263,7 @@ void Pipeline::issue_inst()
 
     int tmp;
     int iter = 0;
+    int num_sent = 0;
     //Transfer from IS to EX stage
     for (int i=0;i<s;i++)
     {
@@ -270,7 +271,7 @@ void Pipeline::issue_inst()
         //Get new insts from the issue stage
         if(execute_list.size()<n*max_lat)
         {
-            if(issue_list.size() == iter)
+            if(issue_list.size() == iter || num_sent == n)
                 break;
             
             if(Debug) cout << "Is it ready? " << rob.at(issue_list.at(iter)).is_inst_ready() << endl;
@@ -284,6 +285,11 @@ void Pipeline::issue_inst()
             else
             {
                 tmp = issue_list.at(iter);
+                //Only n new instructions can be issued in one cycle
+                //if (rob.at(tmp).is_entry_ret() == cycles-1)
+                //{
+                    num_sent++;
+                //}
                 execute_list.push_back(tmp);
                 issue_list.erase(issue_list.begin()+iter);
                 
@@ -319,6 +325,7 @@ void Pipeline::issue_inst()
         }
         else
             break;
+    
     }
     if (Debug)
         cout << "Executing entries: " << 
@@ -328,16 +335,23 @@ void Pipeline::execute_inst()
 {
     int tmp;
     int iter = 0;
+    int num_sent = 0;
     if(Debug) cout << "Enter Execute function" << endl;
     for (int i=0;i<n*max_lat;i++)
     {
-        if(execute_list.size() == iter)
+        if((execute_list.size() == iter)|| (num_sent == n))
             break;
         else
         {
             if(Debug) cout << "Functional unit execute " << execute_list.at(iter)<<endl;
             tmp = execute_list.at(iter);
         
+            //Only n new instructions can be executed in one cycle
+            if (rob.at(tmp).ex_entry_ret() == cycles-1)
+            {
+                num_sent++;
+            }
+
             rob.at(tmp).execute();
             if(Debug) cout << "rem exec time " << rob.at(tmp).exec_lat_ret() << endl;
             if(rob.at(tmp).is_inst_done())
@@ -351,7 +365,8 @@ void Pipeline::execute_inst()
                 if(rob.at(tmp).dest_ret()>=0)
                 {
                     if(reg_file.at(rob.at(tmp).dest_ret()).name_ret() == 
-                            rob.at(tmp).dest_new_ret())
+                            rob.at(tmp).dest_new_ret() 
+                            & (reg_file.at(rob.at(tmp).dest_ret()).is_ready()==0))
                         reg_file.at(rob.at(tmp).dest_ret()).set_ready();
                 }
                 //Issue list source registers update
@@ -404,6 +419,7 @@ void Pipeline::execute_inst()
                 iter++;
         }
     }
+    if(Debug) cout << "Number executed this cycle" << num_sent << endl;
 
 }
 
