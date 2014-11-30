@@ -427,11 +427,9 @@ void Pipeline::execute_inst()
 
 void Pipeline::retire_inst()
 {
-    for (int i = head;i<tail;i++)
-    {
-        if(rob.at(head).state_ret() == WB)
-            rob.at(head).exit_wb(cycles);
-    }
+    if(cycles == 0)
+        return;
+
     while(rob.at(head).state_ret() == WB)
     {
         //Exit step
@@ -452,7 +450,7 @@ void Pipeline::retire_inst()
         cout << "EX{"<< rob.at(head).ex_entry_ret() << 
             "," << rob.at(head).ex_dur_ret() << "} ";
         cout << "WB{"<< rob.at(head).wb_entry_ret() << 
-        ",1}";// << rob.at(head).wb_dur_ret() << "}";
+            ",1}";
         cout << endl;
         rob.at(head).clear_valid();
         head_up();
