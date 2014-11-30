@@ -65,13 +65,14 @@ int main(int argc, char *argv[])
 
 bool AdvanceCycle(Pipeline *pipe)
 {
-    //Increment cycles
-    cycles++;
 
     //End trace and end simulation
     if(trace.eof() & !pipe->head_valid())
         return false;
     
+    //Increment cycles
+    cycles++;
+
     //if(Debug&(pipe->tran_cnt_ret()>200))
     //    return false;
     return true;

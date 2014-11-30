@@ -86,7 +86,7 @@ void Pipeline::fetch_inst(ifstream& trace)
     {
         tst = test_entry();
         
-        if(!trace.eof())
+        if(!trace.eof()&(fetch_list.size()+dispatch_list.size()<2*n)) 
         {
             //Get line from trace
             getline(trace,str);
@@ -97,7 +97,7 @@ void Pipeline::fetch_inst(ifstream& trace)
         //1. ROB can be filled?
         //2. End of Trace?
         //3. Fetch Queue full
-        if(tst & !trace.eof()&(fetch_list.size()<n)) 
+        if(tst & !trace.eof()&(fetch_list.size()+dispatch_list.size()<2*n)) 
         {
             //Add to Fake ROB
             rob.at(tail).inst_up(str);
@@ -134,18 +134,20 @@ void Pipeline::dispatch_inst()
     //Advancing instructions to the IS stage
     int tmp;
     int src1,src2,dest;
+    int num_sent = 0;
     for (int i=issue_list.size();i<s;i++)
     {
         //Check if Scheduling queue is full
         //Get new insts from the disp stage
         if(issue_list.size()<s)
         {
-            if(dispatch_list.size() == 0)
+            if(dispatch_list.size() == 0 || num_sent == n)
                 break;
             
             //Move from dispatch to issue
 
             tmp = dispatch_list.at(0);
+            num_sent++;
             issue_list.push_back(tmp);
             dispatch_list.erase(dispatch_list.begin());
             
@@ -227,11 +229,11 @@ void Pipeline::dispatch_inst()
 
     //------------------------------------------------------------------
     //Transfer from IF to ID stage
-    for (int i=dispatch_list.size();i<n;i++)
+    for (int i=dispatch_list.size();i<2*n;i++)
     {
         //Check if dispatch queue is full
         //Get new insts from the fetch stage
-        if(dispatch_list.size()<n)
+        if(dispatch_list.size()<2*n)
         {
             if(fetch_list.size() == 0)
                 break;
