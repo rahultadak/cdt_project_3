@@ -1,4 +1,3 @@
-#include <cstdlib>
 
 #include "classes.h"
 
@@ -52,6 +51,15 @@ int main(int argc, char *argv[])
         }
 
     }
+    cout << "CONFIGURATION" << endl;
+    cout << " superscalar bandwidth (N) = " << pipe->n_ret() << endl;
+    cout << " dispatch queue size (2*N) = " << 2*pipe->n_ret() << endl;
+    cout << " schedule queue size (S)   = " << pipe->s_ret() << endl;
+    cout << "RESULTS" << endl;
+    cout << " number of instructions = " << pipe->tran_cnt_ret() << endl;
+    cout << " number of cycles       = " << cycles << endl;
+    cout << " IPC                    = " << setprecision(2) << fixed 
+        << (float)pipe->tran_cnt_ret()/cycles << endl; 
     return 0;
 }
 
@@ -64,7 +72,7 @@ bool AdvanceCycle(Pipeline *pipe)
     if(trace.eof() & !pipe->head_valid())
         return false;
     
-    if(Debug&(pipe->tran_cnt_ret()>100))
-        return false;
+    //if(Debug&(pipe->tran_cnt_ret()>200))
+    //    return false;
     return true;
 }

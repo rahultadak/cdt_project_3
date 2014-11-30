@@ -3,6 +3,8 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <iomanip>
+#include <cstdlib>
 using namespace std;
 
 extern int Debug;
@@ -75,6 +77,9 @@ class InstEntry{
         void src1_wait()    { src1_r = false;}
         void src2_wait()    { src2_r = false;}
 
+        bool src1_is_ready(){ return src1_r;}
+        bool src2_is_ready(){ return src2_r;}
+
         void enter_if(int c){ if_entry = c; }
 
         //Enter ID means exit IF
@@ -87,11 +92,23 @@ class InstEntry{
         void enter_wb(int c){ wb_entry = c; ex_dur = c - ex_entry;}
         void exit_wb(int c) { wb_dur = c - wb_entry;}
 
-        bool is_inst_ready()    { return (src1_r&&src2);}
+        int if_entry_ret() { return if_entry;}
+        int if_dur_ret() { return if_dur;}
+        int id_entry_ret() { return id_entry;}
+        int id_dur_ret() { return id_dur;}
+        int is_entry_ret() { return is_entry;}
+        int is_dur_ret() { return is_dur;}
+        int ex_entry_ret() { return ex_entry;}
+        int ex_dur_ret() { return ex_dur;}
+        int wb_entry_ret() { return wb_entry;}
+        int wb_dur_ret() { return wb_dur;}
+
+        bool is_inst_ready()    { return (src1_r & src2_r);}
 
         void set_exec_lat(int a)    { exec_latency = a;}
-        bool is_inst_done() {if(!exec_latency) return true; else return false;}
-        void execute()  {exec_latency--;}
+        int exec_lat_ret()  {return exec_latency;}
+        bool is_inst_done() {if(exec_latency == 0) return true; else return false;}
+        void execute()  {exec_latency = exec_latency - 1 ;}
 };
 
 class Pipeline{
@@ -113,6 +130,7 @@ class Pipeline{
         //int sizechk() {    return rob.size();  }
 
         int n_ret() { return n;}
+        int s_ret() { return s;}
 
         int tail_ret() {    return tail;    }
         int head_ret() {    return head;    }
