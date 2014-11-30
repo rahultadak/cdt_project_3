@@ -12,31 +12,37 @@ InstEntry::InstEntry()
     dest = 0;
     src1 = 0;
     src2 = 0;
+    src1_r = src2_r = true;
     mem = 0;
     state = NONE;
     tag = 0;
+    exec_latency = 0;
+
 }
 
 void InstEntry::inst_up(const string &x)
 {
     istringstream buf(x);
     buf >> hex >> pc;
-    buf >> op;
-    buf >> dest;
-    buf >> src1;
-    buf >> src2;
-    buf>> hex >> mem;
+    buf >> dec >> op;
+    buf >> dec >> dest;
+    buf >> dec >> src1;
+    buf >> dec >> src2;
+    buf >> hex >> mem;
 }
 
-Pipeline::Pipeline(int k,int a,int b)
+Pipeline::Pipeline(int k,int r,int a,int b)
 {    
     size = k;
     s = a;
     n = b;
     tran_cnt = -1;
     rob.resize(size);
+    reg_file.resize(r);
     head = 0;
     tail = 0;
+    //TODO will be different for bonus part
+    max_lat = 5;
 }
 
 void Pipeline::tail_up()
@@ -80,15 +86,19 @@ void Pipeline::fetch_inst(ifstream& trace)
     {
         tst = test_entry();
         
+        if(!trace.eof())
+        {
+            //Get line from trace
+            getline(trace,str);
+            tran_cnt++;
+        }
+
         //Check:
         //1. ROB can be filled?
         //2. End of Trace?
         //3. Fetch Queue full
         if(tst & !trace.eof()&(fetch_list.size()<n)) 
         {
-            //Get line from trace
-            getline(trace,str);
-            tran_cnt++;
 
             //Add to Fake ROB
             rob.at(tail).inst_up(str);
@@ -123,9 +133,9 @@ void Pipeline::dispatch_inst()
         cout << "Enter Dispatch Function" << endl;
 
     //Advancing instructions to the IS stage
-    //TODO renaming the instructions
     int tmp;
-    for (int i=0;i<s;i++)
+    int src1,src2,dest;
+    for (int i=issue_list.size();i<s;i++)
     {
         //Check if Scheduling queue is full
         //Get new insts from the disp stage
@@ -135,6 +145,7 @@ void Pipeline::dispatch_inst()
                 break;
             
             //Move from dispatch to issue
+
             tmp = dispatch_list.at(0);
             issue_list.push_back(tmp);
             dispatch_list.erase(dispatch_list.begin());
@@ -143,8 +154,64 @@ void Pipeline::dispatch_inst()
             rob.at(tmp).state_up(IS);
             rob.at(tmp).enter_is(cycles);
 
+            //SRC1 and SRC2 based on the RMT
+            //DEST for sure
+            //SRC1
+            src1 = rob.at(tmp).src1_ret();
+            if(src1 > -1)
+            {
+                if(!reg_file.at(src1).is_ready())
+                {
+                    rob.at(tmp).src1_rename(reg_file.at(src1).name_ret());
+                    rob.at(tmp).src1_wait();
+                    if(Debug)
+                    {
+                        cout << "SRC 1 "<< src1 << endl;
+                        cout << "SRC 1 new " << reg_file.at(src1).name_ret() << endl;
+                    }
+                }
+                else
+                    rob.at(tmp).src1_ready();
+
+            }
+            //SRC2
+            src2 = rob.at(tmp).src2_ret();
+            cout << "Test" << src2 << endl; 
+            if(src2 > -1)
+            {
+                if(!reg_file.at(src2).is_ready())
+                {
+                    rob.at(tmp).src2_rename(reg_file.at(src2).name_ret());
+                    rob.at(tmp).src2_wait();
+                    if(Debug)
+                    {
+                        cout << "SRC 2 "<< src2 << endl;
+                        cout << "SRC 2 new " << reg_file.at(src2).name_ret() << endl;
+                    }
+                }
+                else
+                    rob.at(tmp).src1_ready();
+            }
+            //DEST
+            dest = rob.at(tmp).dest_ret();
+            //Rename only if valid, i.e. >=0
+            if (dest > -1)
+            {
+                //RMT Rename
+                reg_file.at(dest).rename_reg(rob.at(tmp).tag_ret());
+                reg_file.at(dest).clear_ready();
+                //ROB rename
+                rob.at(tmp).dest_rename(rob.at(tmp).tag_ret());
+                
+                if(Debug)
+                {
+                    cout << "Dest " << dest << endl;
+                    cout << "Dest new " << rob.at(tmp).dest_new_ret() << endl;
+                }
+            }
+
             //Debug
-            cout << "issue " << issue_list.at(i) << endl;
+            if(Debug) cout << "issue " << issue_list.at(i) << endl;
         }
         else
             break;
@@ -174,7 +241,7 @@ void Pipeline::dispatch_inst()
             rob.at(tmp).enter_id(cycles);
 
             //Debug
-            cout << "disp " << dispatch_list.at(i) << endl;
+            if(Debug) cout << "disp " << dispatch_list.at(i) << endl;
         }
         else
             break;
@@ -189,11 +256,117 @@ void Pipeline::issue_inst()
     if (Debug)
         cout << "Enter Issue Function" << endl;
 
+    int tmp;
+    int iter = 0;
+    //Transfer from IS to EX stage
+    for (int i=0;i<s;i++)
+    {
+        //Check if execute queue is full
+        //Get new insts from the issue stage
+        if(execute_list.size()<n*max_lat)
+        {
+            if(issue_list.size() == iter)
+                break;
+            
+            //Move from issue to execute
+            //Check if the inst is ready to execute first
+            if(!rob.at(issue_list.at(iter)).is_inst_ready())
+            {
+                iter++;
+                continue;
+            }
+            else
+            {
+                tmp = issue_list.at(iter);
+                execute_list.push_back(tmp);
+                issue_list.erase(issue_list.begin()+iter);
+                
+                //Update details at ROB
+                rob.at(tmp).state_up(EX);
+                rob.at(tmp).enter_ex(cycles);
+
+                //Set execution latency
+                switch(rob.at(tmp).op_ret())
+                {
+                    case 0:
+                        rob.at(tmp).set_exec_lat(1);
+
+                    case 1:
+                        rob.at(tmp).set_exec_lat(2);
+
+                    case 2:
+                        //TODO additions for bonus part
+                        rob.at(tmp).set_exec_lat(5);
+                }
+                
+                if(Debug) cout << "exec " << execute_list.back() << endl;
+            }
+        }
+        else
+            break;
+    }
+    if (Debug)
+        cout << "Executing entries: " << 
+            execute_list.size() << endl;
 }
+void Pipeline::execute_inst()
+{
+    int tmp;
+    int iter = 0;
+    cout << "Enter Exexute function" << endl;
+    for (int i=0;i<n*max_lat;i++)
+    {
+        if(execute_list.size() == iter)
+            break;
+        else
+        {
+            if(Debug) cout << "execute " <<execute_list.at(iter)<<endl;
+            tmp = execute_list.at(iter);
+        
+            rob.at(tmp).execute();
+            if(rob.at(tmp).is_inst_done())
+            {
+                //Update details at ROB
+                rob.at(tmp).state_up(WB);
+                rob.at(tmp).enter_wb(cycles);
+                //TODO update regesters in issue list and RMT
+                //RMT register update
+                //These are updated only if reg# and tag are both matching
+                if(rob.at(tmp).dest_ret()>=0)
+                {
+                    if(reg_file.at(rob.at(tmp).dest_ret()).name_ret() == 
+                            rob.at(tmp).dest_new_ret())
+                        reg_file.at(rob.at(tmp).dest_ret()).set_ready();
+                }
+                //Issue list source registers update
+                for (int j;j<issue_list.size();j++)
+                {
+                    //For src1
+                    if (rob.at(tmp).dest_new_ret() == 
+                            rob.at(issue_list.at(j)).src1_new_ret())
+                        rob.at(issue_list.at(j)).src1_ready();
+
+                    //For src2
+                    if (rob.at(tmp).dest_new_ret() == 
+                            rob.at(issue_list.at(j)).src2_new_ret())
+                        rob.at(issue_list.at(j)).src2_ready();
+                }
+                execute_list.erase(execute_list.begin());
+            }
+            else
+                iter++;
+        }
+    }
+
+}
+
 void Pipeline::retire_inst()
 {
-    if (!rob.at(head).is_valid())
-        return;
-    rob.at(head).clear_valid();
-    head_up();
+    while(rob.at(head).state_ret() == WB)
+    {
+        if (!rob.at(head).is_valid())
+            return;
+        rob.at(head).clear_valid();
+        head_up();
+    }
 }

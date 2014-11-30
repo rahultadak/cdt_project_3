@@ -19,22 +19,25 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    Pipeline* pipe = new Pipeline(1024,atoi(argv[1]),atoi(argv[2]));
+    Pipeline* pipe = new Pipeline(1024,128,atoi(argv[1]),atoi(argv[2]));
     
 
     while(AdvanceCycle(pipe))
     {
+        //Retire Instruction
+        pipe->retire_inst();
+
+        //Execute Instruction
+        pipe->execute_inst();
+
+        //Issue Instructions
+        pipe->issue_inst();
+
         //Dispatch Instructions
         pipe->dispatch_inst();
 
         //Fetch instructions from trace
         pipe->fetch_inst(trace);
-
-        //The next if loop is debug only
-        //Fake retire algo
-        //Retires One instruction every 3rd cycle
-        if((cycles%3==0)&(cycles!=0))
-            pipe->retire_inst();
 
         if(Debug) 
         {

@@ -1,9 +1,9 @@
 CC = g++
-OPT = -O3
+OPT = -O0
 MEM = -m32
 DBG = -g
 WARN = -w
-CFLAGS = $(OPT) $(MEM) $(WARN) $(INC) $(LIB)
+CFLAGS = $(OPT) $(MEM) $(WARN) $(INC) $(LIB) $(DBG)
 
 # List all your .cc files here (source files, excluding header files)
 SIM_SRC = main.cc classes.cc
