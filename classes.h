@@ -5,10 +5,23 @@
 #include <vector>
 #include <iomanip>
 #include <cstdlib>
+#include "cache_classes.h"
+
 using namespace std;
 
-extern int Debug;
+//extern int Debug;
+//extern int cycles;
+//extern int tran_cnt_l2;
+//extern int victim_swp;
+//extern int wb_dbg;
+//extern int victim_wb;
+extern Cache* L1;
+extern Cache* L2;
 extern int cycles;
+extern int tran_cnt_l2;
+extern int victim_swp;
+
+extern int Debug;
 
 enum{   NONE=0,IF,ID,IS,EX,WB  };
 
@@ -120,7 +133,7 @@ class Pipeline{
         vector<int> issue_list;
         vector<int> execute_list;
         int head,tail,size;
-        int s,n;
+        int sched,n;
         int tran_cnt;
         int max_lat;
 
@@ -130,7 +143,7 @@ class Pipeline{
         //int sizechk() {    return rob.size();  }
 
         int n_ret() { return n;}
-        int s_ret() { return s;}
+        int s_ret() { return sched;}
 
         int tail_ret() {    return tail;    }
         int head_ret() {    return head;    }
@@ -144,7 +157,7 @@ class Pipeline{
 
         void fetch_inst(ifstream& trace);
         void dispatch_inst();
-        void issue_inst();
+        void issue_inst(Transaction in,Cache *L1);
         void execute_inst();
         void retire_inst();
 };

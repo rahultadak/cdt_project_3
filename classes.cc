@@ -1,8 +1,12 @@
 #include "classes.h"
 #include <iterator>
 
-int Debug = 0;
 int cycles = -1;
+
+Cache *L2 = NULL;
+Cache *L1 = NULL;
+int Debug = 1;
+
 
 InstEntry::InstEntry()
 {
@@ -34,7 +38,7 @@ void InstEntry::inst_up(const string &x)
 Pipeline::Pipeline(int k,int r,int a,int b)
 {    
     size = k;
-    s = a;
+    sched = a;
     n = b;
     tran_cnt = -1;
     rob.resize(size);
@@ -135,11 +139,11 @@ void Pipeline::dispatch_inst()
     int tmp;
     int src1,src2,dest;
     int num_sent = 0;
-    for (int i=issue_list.size();i<s;i++)
+    for (int i=issue_list.size();i<sched;i++)
     {
         //Check if Scheduling queue is full
         //Get new insts from the disp stage
-        if(issue_list.size()<s)
+        if(issue_list.size()<sched)
         {
             if(dispatch_list.size() == 0 || num_sent == n)
                 break;
@@ -258,7 +262,7 @@ void Pipeline::dispatch_inst()
             dispatch_list.size() << endl;
 }
 
-void Pipeline::issue_inst()
+void Pipeline::issue_inst(Transaction in,Cache *L1)
 {
     if (Debug)
         cout << "Enter Issue Function" << endl;
@@ -266,8 +270,10 @@ void Pipeline::issue_inst()
     int tmp;
     int iter = 0;
     int num_sent = 0;
+    int cache = 0;
+
     //Transfer from IS to EX stage
-    for (int i=0;i<s;i++)
+    for (int i=0;i<sched;i++)
     {
         //Check if execute queue is full
         //Get new insts from the issue stage
@@ -317,7 +323,26 @@ void Pipeline::issue_inst()
 
                     case 2:
                         //TODO additions for bonus part
-                        rob.at(tmp).set_exec_lat(5);
+                        if(L1 != NULL)
+                        {
+                            in.setAddr(rob.at(tmp).mem_ret());
+                            cache = L1->request(rob.at(tmp).mem_ret(),in.tranType());
+                            if(cache == 0)
+                                rob.at(tmp).set_exec_lat(20);
+                            else if(cache == 1)
+                            {
+                                if(L2!=NULL)
+                                   rob.at(tmp).set_exec_lat(10);
+                                else
+                                   rob.at(tmp).set_exec_lat(5);
+                            }
+                            else if(cache == 2)
+                                rob.at(tmp).set_exec_lat(5);
+                        }
+                        else
+                        {
+                            rob.at(tmp).set_exec_lat(5);
+                        }
                         break;
                 }
                 

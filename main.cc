@@ -1,4 +1,3 @@
-
 #include "classes.h"
 
 using namespace std;
@@ -11,6 +10,13 @@ bool AdvanceCycle(Pipeline* pipe);
 
 int main(int argc, char *argv[])
 {
+    if(atoi(argv[3])!=0)
+    {
+        L1 = new Cache(atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),0,0,"L2",NULL,NULL);
+        if(atoi(argv[6])!=0)
+            L2 = new Cache(atoi(argv[3]),atoi(argv[6]),atoi(argv[7]),0,0,"L1",L2,NULL);
+    }
+
    	trace.open(argv[8]);
     if (!trace)
     {
@@ -19,8 +25,10 @@ int main(int argc, char *argv[])
     }
 
     Pipeline* pipe = new Pipeline(1024,128,atoi(argv[1]),atoi(argv[2]));
-    
 
+    Transaction InTran;
+    InTran.setType(0);
+    
     while(AdvanceCycle(pipe))
     {
         //Retire Instruction
@@ -30,7 +38,7 @@ int main(int argc, char *argv[])
         pipe->execute_inst();
 
         //Issue Instructions
-        pipe->issue_inst();
+        pipe->issue_inst(InTran,L1);
 
         //Dispatch Instructions
         pipe->dispatch_inst();
@@ -51,8 +59,25 @@ int main(int argc, char *argv[])
         }
 
     }
+    //Print Cache contents
+    
+    if(atoi(argv[3])!=0)
+    {
+        cout <<"L1 CACHE CONTENTS" << endl;
+        L1->print_raw_op();
+        L1->print_contents();
+
+        if(atoi(argv[6])!=0)
+        {
+            cout <<"L2 CACHE CONTENTS" << endl;
+            L2->print_raw_op();
+            L2->print_contents();
+        }
+        cout << endl;
+    }
+
     cout << "CONFIGURATION" << endl;
-    cout << " superscalar bandwidth (N) = " << pipe->n_ret() << endl;
+    cout << " superscalar bandwidth (N) = " << dec << pipe->n_ret() << endl;
     cout << " dispatch queue size (2*N) = " << 2*pipe->n_ret() << endl;
     cout << " schedule queue size (S)   = " << pipe->s_ret() << endl;
     cout << "RESULTS" << endl;
