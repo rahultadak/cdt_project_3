@@ -5,7 +5,7 @@ int cycles = -1;
 
 Cache *L2 = NULL;
 Cache *L1 = NULL;
-int Debug = 1;
+int Debug = 0;
 
 
 InstEntry::InstEntry()
@@ -163,7 +163,7 @@ void Pipeline::dispatch_inst()
             //DEST for sure
             //SRC1
             src1 = rob.at(tmp).src1_ret();
-            if(src1 > -1)
+            if(src1 != -1)
             {
                 if(!reg_file.at(src1).is_ready())
                 {
@@ -176,13 +176,16 @@ void Pipeline::dispatch_inst()
                     }
                 }
                 else
+                {
                     rob.at(tmp).src1_ready();
+                    rob.at(tmp).src1_rename(-5);
+                }
             }
             else
                 rob.at(tmp).src1_ready();
             //SRC2
             src2 = rob.at(tmp).src2_ret();
-            if(src2 > -1)
+            if(src2 != -1)
             {
                 if(!reg_file.at(src2).is_ready())
                 {
@@ -195,7 +198,10 @@ void Pipeline::dispatch_inst()
                     }
                 }
                 else
+                {
                     rob.at(tmp).src2_ready();
+                    rob.at(tmp).src2_rename(-5);
+                }
             }
             else
                 rob.at(tmp).src2_ready();
@@ -203,7 +209,7 @@ void Pipeline::dispatch_inst()
             //DEST
             dest = rob.at(tmp).dest_ret();
             //Rename only if valid, i.e. >=0
-            if (dest > -1)
+            if (dest != -1)
             {
                 //RMT Rename
                 reg_file.at(dest).rename_reg(rob.at(tmp).tag_ret());
@@ -217,6 +223,11 @@ void Pipeline::dispatch_inst()
                     cout << "Dest new " << rob.at(tmp).dest_new_ret() << endl;
                 }
             }
+            else
+            {
+                rob.at(tmp).dest_rename(-1);
+            }
+
 
             //Debug
             if(Debug) cout << "issue " << issue_list.at(i) << endl;
@@ -293,6 +304,7 @@ void Pipeline::issue_inst(Transaction in,Cache *L1)
             else
             {
                 tmp = issue_list.at(iter);
+                if(Debug) cout << "ISSUE is" << tmp << endl;
                 //Only n new instructions can be issued in one cycle
                 //if (rob.at(tmp).is_entry_ret() == cycles-1)
                 //{
@@ -330,14 +342,9 @@ void Pipeline::issue_inst(Transaction in,Cache *L1)
                             if(cache == 0)
                                 rob.at(tmp).set_exec_lat(20);
                             else if(cache == 1)
-                            {
-                                if(L2!=NULL)
-                                   rob.at(tmp).set_exec_lat(10);
-                                else
-                                   rob.at(tmp).set_exec_lat(5);
-                            }
-                            else if(cache == 2)
                                 rob.at(tmp).set_exec_lat(5);
+                            else if(cache == 2)
+                                rob.at(tmp).set_exec_lat(10);
                         }
                         else
                         {

@@ -12,11 +12,12 @@ int main(int argc, char *argv[])
 {
     if(atoi(argv[3])!=0)
     {
-        L1 = new Cache(atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),0,0,"L2",NULL,NULL);
         if(atoi(argv[6])!=0)
-            L2 = new Cache(atoi(argv[3]),atoi(argv[6]),atoi(argv[7]),0,0,"L1",L2,NULL);
+        {
+            L2 = new Cache(atoi(argv[3]),atoi(argv[6]),atoi(argv[7]),0,0,"L2",NULL,NULL);
+        }
+        L1 = new Cache(atoi(argv[3]),atoi(argv[4]),atoi(argv[5]),0,0,"L1",L2,NULL);
     }
-
    	trace.open(argv[8]);
     if (!trace)
     {
@@ -66,14 +67,15 @@ int main(int argc, char *argv[])
         cout <<"L1 CACHE CONTENTS" << endl;
         L1->print_raw_op();
         L1->print_contents();
+        cout << endl;
 
         if(atoi(argv[6])!=0)
         {
             cout <<"L2 CACHE CONTENTS" << endl;
             L2->print_raw_op();
             L2->print_contents();
+            cout << endl;
         }
-        cout << endl;
     }
 
     cout << "CONFIGURATION" << endl;
