@@ -35,7 +35,7 @@ void InstEntry::inst_up(const string &x)
     buf >> hex >> mem;
 }
 
-Pipeline::Pipeline(int k,int r,int a,int b)
+Pipeline::Pipeline(int k,int r,int a,int b, bool use_cache)
 {    
     size = k;
     sched = a;
@@ -46,7 +46,10 @@ Pipeline::Pipeline(int k,int r,int a,int b)
     head = 0;
     tail = 0;
     //TODO will be different for bonus part
-    max_lat = 5;
+    if(use_cache)
+        max_lat = 20;
+    else
+        max_lat = 5;
 }
 
 void Pipeline::tail_up()

@@ -5,6 +5,7 @@ using namespace std;
 bool tst;
 ifstream trace;
 string strIn;
+int use_cache = 0;
 
 bool AdvanceCycle(Pipeline* pipe);
 
@@ -25,7 +26,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    Pipeline* pipe = new Pipeline(1024,128,atoi(argv[1]),atoi(argv[2]));
+    Pipeline* pipe = new Pipeline(1024,128,atoi(argv[1]),atoi(argv[2]),use_cache);
 
     Transaction InTran;
     InTran.setType(0);

@@ -138,7 +138,7 @@ class Pipeline{
         int max_lat;
 
     public:
-        Pipeline(int k,int r,int a,int b);
+        Pipeline(int k,int r,int a,int b, bool use_cache);
         
         //int sizechk() {    return rob.size();  }
 
